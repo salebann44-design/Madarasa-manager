@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="so">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Madarasada — Maamulka</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#69758a;--line:#e2e8f0;--brand:#176b57;--brand2:#e0f3ed;--red:#b42318;--amber:#9a6700;--shadow:0 8px 28px #15243b0b}
+[data-theme=dark]{--bg:#101720;--card:#182331;--ink:#eef4fb;--muted:#a7b4c5;--line:#2c3a4c;--brand:#57c6a0;--brand2:#203d38;--red:#ff8b83;--amber:#ffd479;--shadow:0 8px 28px #0003}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:11px;padding:11px 14px;background:var(--brand);color:white;font-weight:650}
+button.secondary{background:var(--brand2);color:var(--brand)}
+button.danger{background:#ffebe9;color:var(--red)}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);outline-color:var(--brand)}
+label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px}
+.field{margin-bottom:13px}
+.app{max-width:1200px;margin:auto;padding:20px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:46px;height:46px;display:grid;place-items:center;background:var(--brand);color:white;border-radius:15px;font-size:22px}
+.sub{color:var(--muted);font-size:13px}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:18px}
+.nav,.card{background:var(--card);border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow)}
+.nav{padding:10px;height:max-content;position:sticky;top:12px}
+.nav button{display:flex;width:100%;text-align:left;gap:10px;align-items:center;margin:3px 0;background:transparent;color:var(--muted)}
+.nav button.active{background:var(--brand2);color:var(--brand)}
+.content{min-width:0}
+.card{padding:18px;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.stat{padding:17px;background:var(--card);border:1px solid var(--line);border-radius:15px}
+.stat strong{font-size:25px;display:block;margin-top:7px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row>*{flex:1}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.section-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+.section-title h2{font-size:21px;margin:0}
+.hidden{display:none!important}
+.modal-backdrop{position:fixed;inset:0;background:#08111dcc;display:flex;align-items:center;justify-content:center;padding:16px;z-index:10;overflow:auto}
+.modal{width:min(720px,100%);max-height:92vh;overflow:auto;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 20px 70px #0005}
+.modal h2{margin-top:0}
+
+/* Hagaajinta CSS-ka Table-ka */
+.table-wrap{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;margin-bottom:15px}
+.table-wrap table{width:max-content;min-width:650px;max-width:none;border-collapse:collapse}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);font-size:13px;white-space:normal;overflow-wrap:anywhere}
+th{color:var(--muted);font-weight:600}
+td strong{font-size:14px}
+
+.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:var(--brand2);color:var(--brand);font-size:12px;font-weight:700}
+.pill.red{background:#ffebe9;color:var(--red)}
+.pill.amber{background:#fff4d6;color:var(--amber)}
+.empty{text-align:center;padding:28px;color:var(--muted)}
+.login{max-width:440px;margin:8vh auto;padding:26px}
+.login h1{margin-bottom:5px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--card);padding:12px 18px;border-radius:12px;display:none;z-index:50;max-width:90%;text-align:center}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.badge{font-size:12px;background:var(--brand2);color:var(--brand);padding:5px 8px;border-radius:8px}
+
+/* Invoice CSS */
+.invoice-paper{background:#fff;color:#172b3a;border:1px solid #dbe4ed;border-radius:14px;overflow:hidden;padding:16px;font-size:13px}
+.inv-banner{display:flex;align-items:center;gap:14px;background:linear-gradient(120deg,#123d56,#087f8c);color:#fff;padding:18px;border-radius:12px}
+.inv-mark{font-size:30px;background:#ffffff22;border-radius:12px;padding:9px}
+.inv-brand h2{margin:0;font-size:22px;color:#fff}
+.inv-brand p{margin:5px 0;font-size:10px;letter-spacing:2px;color:#c9f7ed}
+.inv-brand span{font-size:11px;font-weight:bold}
+.inv-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.inv-meta>div,.inv-student-grid>div{border:1px solid #dce6ee;border-radius:7px;padding:8px;min-width:0}
+.inv-meta small,.inv-student-grid small,.inv-summary small{display:block;color:#657786;font-size:10px;margin-bottom:4px}
+.inv-meta strong,.inv-student-grid strong{display:block;overflow-wrap:anywhere}
+.inv-section-title{font-size:13px;color:#087f8c;border-bottom:2px solid #d9f1ee;padding-bottom:6px;margin:16px 0 8px}
+.inv-student-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.inv-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.inv-summary>div{background:#edf6f8;border:1px solid #d6e9ed;border-radius:8px;padding:9px;min-width:0}
+.inv-summary strong{font-size:12px;display:block;overflow-wrap:anywhere}
+.inv-summary .inv-balance{background:#fff0e9;border-color:#ffd0bc;color:#a64020}
+.inv-table{width:100%;border-collapse:collapse;font-size:10px}
+.inv-table th,.inv-table td{border:1px solid #dce5ec;padding:6px;text-align:left;overflow-wrap:anywhere}
+.inv-table th{background:#e8f4f5;color:#164d5b}
+.status{padding:3px 6px;border-radius:12px;font-size:9px}
+.paid{background:#dcf7e8;color:#147443}
+.owing{background:#ffe8e1;color:#a64020}
+.inv-note{background:#f4f7fa;border-left:4px solid #0d8990;padding:10px;margin-top:14px;line-height:1.5}
+.inv-signatures{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:30px 0 16px}
+.inv-signatures div{border-top:1px solid #8293a0;padding-top:8px;text-align:center}
+.inv-footer{text-align:center;color:#55717d;border-top:1px solid #e0e8ed;padding-top:10px;font-size:10px}
+
+/* Group Children */
+.group-children-rows{display:flex;flex-direction:column;gap:9px;margin:8px 0 12px}
+.group-child-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.55fr) auto;gap:8px;align-items:center}
+
+@media(max-width:800px){
+  .layout{grid-template-columns:1fr}
+  .nav{position:static;display:grid;grid-template-columns:repeat(3,1fr)}
+  .nav button{font-size:12px;justify-content:center;padding:9px 5px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .grid2{grid-template-columns:1fr}
+  .app{padding:12px}
+  .card{padding:14px}
+}
+
+@media(max-width:600px){
+  .table-wrap table{min-width:610px}
+  .table-wrap th,.table-wrap td{padding:9px 7px;font-size:12px}
+  .row{flex-wrap:wrap}
+  .row>.field{flex:1 1 180px;min-width:0}
+  #studentsTable .actions{flex-wrap:wrap;min-width:150px}
+  #studentsTable .actions button{font-size:12px;padding:8px}
+  #page-register .actions{display:grid;grid-template-columns:1fr;gap:8px}
+  #page-register .actions button{width:100%}
+  .group-child-row{grid-template-columns:minmax(0,1fr) minmax(112px,.7fr);gap:7px}
+  .group-child-row button{grid-column:1/-1;justify-self:start;padding:7px 12px}
+}
+
+@media(max-width:520px){
+  .invoice-paper{padding:9px}
+  .inv-banner{padding:12px;gap:8px}
+  .inv-brand h2{font-size:17px}
+  .inv-meta{grid-template-columns:1fr}
+  .inv-student-grid{grid-template-columns:1fr}
+  .inv-summary{grid-template-columns:1fr 1fr}
+  .inv-table{font-size:9px}
+  .inv-table th,.inv-table td{padding:4px}
+}
+
+html,body{max-width:100%;overflow-x:hidden}
+main,.app,.content,.page,.card,.panel,.section-title,.grid,.grid2,.row,.field{min-width:0}
+.card,.panel{max-width:100%}
+
+@media print{
+  .no-print,.nav,.top,.toast{display:none!important}
+}
+</style>
+</head>
+<body>
+<div id="login" class="card login">
+ <div class="brand"><div class="logo">📚</div><div><h1 style="font-size:23px;margin:0">Maamulka Madarasada</h1><div class="sub">Diiwaanka ardayda iyo lacagaha</div></div></div>
+ <div id="loginForm" style="margin-top:25px">
+  <div class="field"><label>PIN-ka maamulka</label><input id="pinInput" type="password" inputmode="numeric" maxlength="12" placeholder="Geli PIN-ka"></div>
+  <button style="width:100%" onclick="login()">Gal barnaamijka</button>
+  <div style="text-align:center;margin-top:13px"><button class="secondary" onclick="showForgot()">Ma illowday PIN-ka?</button></div>
+  <p class="hint">Xogta barnaamijkan waxay ku kaydsan tahay qalabkan/browser-kan. Fadlan samee nuqul kayd ah marar badan.</p>
+ </div>
+ <div id="forgotForm" class="hidden" style="margin-top:20px">
+  <h3>Helitaanka PIN cusub</h3><p class="sub">Lambarka maamulka: <b>+252636828277</b></p>
+  <div class="field"><label>Code-ka xaqiijinta</label><input id="recoveryCode" inputmode="numeric" placeholder="Geli code-ka"></div>
+  <div class="field"><label>PIN cusub</label><input id="newPin" type="password" inputmode="numeric" maxlength="12" placeholder="Ugu yaraan 4 lambar"></div>
+  <button onclick="resetPin()">Samee PIN cusub</button> <button class="secondary" onclick="hideForgot()">Dib u noqo</button>
+  <p class="hint">Muhiim: SMS dhab ah weli kuma xidhna barnaamijkan. Si looga hortago in qof kale PIN-ka beddelo, code-ka waa in lagu soo diro adeeg SMS iyo server ammaan ah. Hadda dib-u-helidda waxaa lagu dhammeystiri karaa oo keliya code-ka maamulka ee gudaha barnaamijkan.</p>
+ </div>
+</div>
+<div id="app" class="app hidden">
+ <header class="top"><div class="brand"><div class="logo">📚</div><div><div style="font-size:21px;font-weight:800">Maamulka Madarasada</div><div class="sub">Arday • Diiwaangelin • Lacag-bixin bille ah</div></div></div><div class="row" style="flex:0 1 auto"><button class="secondary" onclick="toggleTheme()">◐ Muuqaalka</button><button class="secondary" onclick="logout()">Ka bax</button></div></header>
+ <div class="layout">
+  <nav class="nav">
+   <button class="active" data-page="register" onclick="go('register')">＋ &nbsp; Diiwaangelin (Bilow)</button>
+   <button data-page="home" onclick="go('home')">▦ &nbsp; Guudmar / Lacagaha</button>
+   <button data-page="students" onclick="go('students')">👥 &nbsp; Ardayda</button>
+   <button data-page="payments" onclick="go('payments')">💳 &nbsp; Lacagaha bisha</button>
+   <button data-page="debts" onclick="go('debts')">◷ &nbsp; Daymaha</button>
+   <button data-page="reports" onclick="go('reports')">▤ &nbsp; Warbixinno</button>
+   <button data-page="settings" onclick="go('settings')">⚙ &nbsp; Dejinta</button>
+  </nav>
+  <main class="content">
+   <section id="page-home" class="hidden">
+    <div class="section-title"><h2>Guudmarka</h2><span class="badge" id="today"></span></div>
+    <div class="stats"><div class="stat"><span class="sub">Ardayda firfircoon</span><strong id="sStudents">0</strong></div><div class="stat"><span class="sub">Lacagta la ururiyey</span><strong id="sPaid">$0</strong></div><div class="stat"><span class="sub">Lacagta la sugayo</span><strong id="sDue">$0</strong></div><div class="stat"><span class="sub">Bixiyey bishan</span><strong id="sCount">0</strong></div></div>
+    <div class="card"><div class="section-title"><h2>Hawlaha degdegga ah</h2></div><div class="actions"><button onclick="go('register')">＋ Diiwaangeli arday</button><button class="secondary" onclick="go('payments')">Diiwaangeli lacag</button><button class="secondary" onclick="go('debts')">Eeg daymaha</button></div></div>
+    <div class="card"><div class="section-title"><h2>Lacag-bixintii ugu dambaysay</h2><button class="secondary" onclick="go('payments')">Dhammaan</button></div><div id="recentPayments" class="table-wrap"></div></div>
+   </section>
+   <section id="page-students" class="hidden"><div class="section-title"><h2>Ardayda</h2><button onclick="go('register')">＋ Arday cusub</button></div><div class="card"><div class="row"><div><label>Raadi arday</label><input id="studentSearch" placeholder="Magac, telefoon ama ID..." oninput="renderStudents()"></div><div><label>Heerka</label><select id="studentFilter" onchange="renderStudents()"><option value="all">Dhammaan</option><option value="active">Firfircoon</option><option value="inactive">Joojiyey</option></select></div></div><div id="studentsTable" class="table-wrap" style="margin-top:15px"></div></div></section>
+   <section id="page-register"><div class="section-title"><h2>Diiwaangelinta ardayga cusub</h2><span class="badge">Bilow halkan</span></div>
+    <div class="card"><h3 style="margin-top:0">Dooro nooca diiwaangelinta</h3><div class="actions"><button id="singleModeBtn" type="button" onclick="setRegMode('single')">Diiwaangelin hal arday</button><button id="groupModeBtn" type="button" class="secondary" onclick="setRegMode('group')">Diiwaangelin arday badan (hal bixiye)</button></div><p class="sub">Xogta maaliyadeed laguma soo bandhigayo bogga bilowga; waxay ku jirtaa qaybaha hoose ee maamulka.</p></div>
+    <div class="card hidden" id="groupRegisterCard"><h3>Diiwaangelinta arday badan — hal masuul/bixiye</h3><p class="sub">Qor magac kasta sadar gooni ah. Lacagta guud ee bisha ayaa si siman loogu qaybinayaa ardayda, bixiyuhuna hal mar ayuu u bixin karaa dhammaantood.</p><form id="groupStudentForm" onsubmit="saveStudentGroup(event)"><div class="grid2"><div class="field" style="grid-column:1/-1"><label>Magaca iyo jinsiga arday kasta *</label><p class="sub">Qor magaca ardayga, kadib dooro Lab ama Dheddig dhinaciisa. Waxaad ku dari kartaa 2, 4, 5 ama arday intaad rabto.</p><div id="groupChildrenRows" class="group-children-rows">
+<div class="group-child-row"><input name="childName" placeholder="Magaca ardayga 1" aria-label="Magaca ardayga 1"><select name="childGender" aria-label="Jinsiga ardayga 1"><option value="Lab">Lab (Wiil)</option><option value="Dhedig">Dheddig (Gabar)</option></select><button type="button" class="secondary" onclick="removeGroupChildRow(this)">Ka saar</button></div>
+<div class="group-child-row"><input name="childName" placeholder="Magaca ardayga 2" aria-label="Magaca ardayga 2"><select name="childGender" aria-label="Jinsiga ardayga 2"><option value="Lab">Lab (Wiil)</option><option value="Dhedig">Dheddig (Gabar)</option></select><button type="button" class="secondary" onclick="removeGroupChildRow(this)">Ka saar</button></div>
+</div><button type="button" class="secondary" onclick="addGroupChildRow()">+ Ku dar arday kale</button></div><div class="field"><label>Magaca masuulka/bixiyaha *</label><input name="guardian" required placeholder="Magaca qofka lacagta bixinaya"></div><div class="field"><label>Telefoonka masuulka</label><input name="phone" type="tel" placeholder="+252..."></div><div class="field"><label>Taariikhda diiwaangelinta *</label><input name="date" type="date" id="groupRegDate" required></div><div class="field"><label>Barnaamijka waxbarashada *</label><select name="course" required><option value="">Dooro barnaamijka</option><option value="Quraan/higaad">Quraan/higaad</option><option value="Quraan/higaad/somali">Quraan/higaad/somali</option><option value="Quraan/higaad/xisaab">Quraan/higaad/xisaab</option><option value="Quraan/higaad/somali/xisaab">Quraan/higaad/somali/xisaab</option></select></div><div class="field"><label>Fasalka/heerka</label><input name="level" placeholder="Heerka"></div><div class="field"><label>Wadarta guud bishii *</label><input name="totalFee" type="number" min="0.01" step="any" required placeholder="Tusaale: 90000"></div><div class="field"><label>Discount guud bishii</label><input name="discount" type="number" min="0" step="any" value="0" placeholder="Haddii jiro"></div><div class="field"><label>Lacagta</label><select name="currency" required><option value="SOS">Shilling Soomaali (SOS)</option><option value="USD">Dollar (USD $)</option></select></div><div class="field"><label>Jadwalka</label><select name="shift"><option>Subax</option><option>Galab</option><option>Makhrib</option><option>Cishe kadib</option><option>Fiid</option></select></div></div><div class="actions"><button type="submit">Diiwaangeli ardayda oo dhan</button></div></form></div>
+    <div id="singleRegisterCard" class="card"><form id="studentForm" onsubmit="saveStudent(event)"><div class="grid2"><div class="field"><label>Magaca oo buuxa *</label><input name="name" required></div><div class="field"><label>Jinsiga *</label><select name="gender" required><option value="">Dooro jinsiga</option><option value="Lab">Lab (Wiil)</option><option value="Dhedig">Dheddig (Gabar)</option></select></div><div class="field"><label>Telefoonka waalidka/mas'uulka</label><input name="phone" type="tel" placeholder="+252..."></div><div class="field"><label>Magaca waalidka/mas'uulka</label><input name="guardian"></div><div class="field"><label>Taariikhda diiwaangelinta *</label><input name="date" type="date" required id="regDate"></div><div class="field"><label>Barnaamijka waxbarashada *</label><select name="course" id="regCourse" required onchange="applyCourseFee('studentForm')"><option value="">Dooro barnaamijka</option><option value="Quraan/higaad">Quraan/higaad</option><option value="Quraan/higaad/somali">Quraan/higaad/somali</option><option value="Quraan/higaad/xisaab">Quraan/higaad/xisaab</option><option value="Quraan/higaad/somali/xisaab">Quraan/higaad/somali/xisaab</option></select></div><div class="field"><label>Fasalka/heerka Qur'aanka</label><input name="level" placeholder="Tusaale: Heerka 1aad"></div><div class="field"><label>Lacagta caadiga ah bishii</label><input name="fee" id="regFee" type="number" min="0" step="any" required placeholder="Lacagta bisha"></div><div class="field"><label>Discount / Dhimis bishii</label><input name="discount" type="number" min="0" step="any" value="0" placeholder="Tusaale: 5000"><small class="sub">Geli qiimaha laga dhimayo lacagta bishii; haddii aan jirin geli 0.</small></div><div class="field"><label>Lacagta lagu xisaabinayo</label><select name="currency" id="regCurrency" required onchange="applyCourseFee('studentForm')"><option value="SOS">Shilling Soomaali (SOS)</option><option value="USD">Dollar (USD $)</option></select></div><div class="field"><label>Jadwalka</label><select name="shift"><option>Subax</option><option>Galab</option><option>Makhrib</option><option>Cishe kadib</option><option>Fiid</option></select></div><div class="field"><label>Xaaladda</label><select name="status"><option value="active">Firfircoon</option><option value="inactive">Joojiyey</option></select></div></div><p class="hint">Qiimaha caadiga ah ee Shilling: Quraan/higaad = 20,000 SOS; Quraan/higaad/somali = 40,000 SOS; Quraan/higaad/xisaab = 40,000 SOS; Quraan/higaad/somali/xisaab = 40,000 SOS. Haddii Dollar la doorto, geli qiimaha USD ee madarasaddu isticmaasho; si toos ah looma beddelayo maadaama aan sarif la cayimin.</p><div class="field"><label>Faallooyin / xog dheeraad ah</label><textarea name="notes" rows="2" placeholder="Xog kale oo muhiim ah"></textarea></div><button type="submit">Kaydi ardayga</button></form></div></section>
+   <section id="page-payments" class="hidden"><div class="section-title"><h2>Lacag-bixinta bisha</h2></div><div class="card"><form id="paymentForm" onsubmit="savePayment(event)"><div class="grid2"><div class="field"><label>Ardayga *</label><select id="payStudent" name="studentId" required onchange="syncPayCurrency()"></select></div><div class="field"><label>Bisha *</label><input name="month" type="month" id="payMonth" required></div><div class="field"><label>Lacagta la bixiyey *</label><input name="amount" type="number" min="0.01" step="0.01" required></div><div class="field"><label>Lacagta lagu bixiyey *</label><select id="payCurrency" name="currency" required><option value="USD">Dollar (USD $)</option><option value="SOS">Shilling Soomaali (SOS)</option></select></div><div class="field"><label>Taariikhda bixinta *</label><input name="date" type="date" id="payDate" required></div><div class="field"><label>Habka lacag-bixinta</label><select name="method"><option>Cash</option><option>Mobile Money</option><option>Bank</option><option>Kale</option></select></div><div class="field"><label>Tixraac / faallo</label><input name="note" placeholder="Lambarka rasiidka iwm"></div></div><button type="submit">Diiwaangeli lacag-bixinta</button></form></div><div class="card"><div class="section-title"><h2>Diiwaanka lacagaha</h2><input style="max-width:190px" id="paymentMonthFilter" type="month" onchange="renderPayments()"></div><div id="paymentsTable" class="table-wrap"></div></div></section>
+   <section id="page-debts" class="hidden"><div class="section-title"><h2>Daymaha ardayda</h2></div><div class="card"><p class="sub">Waxa si otomaatig ah loo xisaabinayaa lacagta laga filayey bilaha ardaygu firfircoonaa, marka laga jaro lacagaha la diiwaangeliyey.</p><div class="row"><div class="field"><label>Ilaa bisha</label><input type="month" id="debtMonth" onchange="renderDebts()"></div><div class="field"><label>Raadi</label><input id="debtSearch" placeholder="Magaca ardayga..." oninput="renderDebts()"></div></div><div id="debtsTable" class="table-wrap"></div></div></section>
+   <section id="page-reports" class="hidden"><div class="section-title"><h2>Warbixinno iyo kayd</h2></div><div class="card"><h3>Warbixinta bisha</h3><div class="row"><div class="field"><label>Dooro bisha</label><input type="month" id="reportMonth" onchange="renderReport()"></div></div><div id="reportSummary"></div><div id="reportTable" class="table-wrap"></div><div class="actions"><button onclick="exportCSV()">Soo dejiso CSV</button><button class="secondary" onclick="print()">Daabac warbixinta</button></div></div><div class="card"><h3>Kaydinta iyo soo celinta xogta</h3><p class="sub">Samee backup si xogtu kuugu badbaado haddii telefoonka/browser-ku lumo ama la tirtiro.</p><div class="actions"><button onclick="backup()">Soo dejiso kaydka (JSON)</button><button class="secondary" onclick="document.getElementById('restoreFile').click()">Soo celi kayd hore</button><input id="restoreFile" class="hidden" type="file" accept=".json,application/json" onchange="restoreBackup(event)"></div></div></section>
+   <section id="page-settings" class="hidden"><div class="section-title"><h2>Dejinta barnaamijka</h2></div><div class="card"><h3>Amniga PIN-ka</h3><div class="grid2"><div class="field"><label>PIN-ka hadda</label><input id="oldPin" type="password" inputmode="numeric"></div><div class="field"><label>PIN cusub</label><input id="changePin" type="password" inputmode="numeric" maxlength="12"></div></div><button onclick="changePin()">Beddel PIN-ka</button><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><h3>Macluumaadka madarasada</h3><div class="field"><label>Magaca madarasada</label><input id="schoolName" placeholder="Magaca madarasada"></div><div class="field"><label>Lambarka maamulka</label><input id="adminPhone" value="+252636828277"></div><button onclick="saveSettings()">Kaydi dejinta</button></div><div class="card"><h3>Maamulka xogta</h3><p class="hint">Xogta ardayda iyo lacaguhu waxay ku kaydsan yihiin browser-ka qalabkan. Tani ma aha cloud database, mana la wadaagto qalab kale si otomaatig ah.</p><button class="danger" onclick="clearData()">Tirtir dhammaan xogta</button></div></section>
+  </main>
+ </div>
+</div>
+
+<div id="invoiceModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="invoiceTitle">
+ <div class="modal" id="invoicePrintArea">
+  <div class="section-title"><h2 id="invoiceTitle">Invoice / Warbixinta Ardayga
