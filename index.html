@@ -189,4 +189,216 @@ main,.app,.content,.page,.card,.panel,.section-title,.grid,.grid2,.row,.field{mi
 
 <div id="invoiceModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="invoiceTitle">
  <div class="modal" id="invoicePrintArea">
-  <div class="section-title"><h2 id="invoiceTitle">Invoice / Warbixinta Ardayga
+  <div class="section-title"><h2 id="invoiceTitle">Invoice / Warbixinta Ardayga</h2><button type="button" class="secondary no-print" onclick="closeInvoice()">Xir ✕</button></div>
+  <div id="invoiceContent"></div>
+  <div class="actions no-print"><button type="button" onclick="printInvoice()">Daabac / Save PDF</button><button type="button" class="secondary" onclick="closeInvoice()">Xir</button></div>
+ </div>
+</div>
+
+<div id="editModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+ <div class="modal">
+  <div class="section-title"><h2 id="editTitle">Wax ka beddel xogta ardayga</h2><button type="button" class="secondary" onclick="closeEdit()">Xir ✕</button></div>
+  <form id="editStudentForm" onsubmit="saveStudentEdit(event)">
+   <input type="hidden" name="id">
+   <div class="grid2">
+    <div class="field"><label>Magaca oo buuxa *</label><input name="name" required></div>
+    <div class="field"><label>Jinsiga *</label><select name="gender" required><option value="Lab">Lab (Wiil)</option><option value="Dhedig">Dheddig (Gabar)</option></select></div>
+    <div class="field"><label>Telefoonka waalidka/mas'uulka</label><input name="phone" type="tel"></div>
+    <div class="field"><label>Magaca waalidka/mas'uulka</label><input name="guardian"></div>
+    <div class="field"><label>Taariikhda diiwaangelinta *</label><input name="date" type="date" required></div>
+    <div class="field"><label>Barnaamijka waxbarashada *</label><select name="course" id="editCourse" required onchange="applyCourseFee('editStudentForm')"><option value="Quraan/higaad">Quraan/higaad</option><option value="Quraan/higaad/somali">Quraan/higaad/somali</option><option value="Quraan/higaad/xisaab">Quraan/higaad/xisaab</option><option value="Quraan/higaad/somali/xisaab">Quraan/higaad/somali/xisaab</option></select></div>
+    <div class="field"><label>Fasalka/heerka Qur'aanka</label><input name="level"></div>
+    <div class="field"><label>Lacagta caadiga ah bishii</label><input name="fee" type="number" min="0" step="any" required></div>
+    <div class="field"><label>Discount / Dhimis bishii</label><input name="discount" type="number" min="0" step="any" value="0" placeholder="Tusaale: 5000"><small class="sub">Qiimaha laga dhimayo lacagta bishii.</small></div>
+    <div class="field"><label>Lacagta lagu xisaabinayo</label><select name="currency" required onchange="applyCourseFee('editStudentForm')"><option value="SOS">Shilling Soomaali (SOS)</option><option value="USD">Dollar (USD $)</option></select></div>
+    <div class="field"><label>Jadwalka</label><select name="shift"><option>Subax</option><option>Galab</option><option>Makhrib</option><option>Cishe kadib</option><option>Fiid</option></select></div>
+    <div class="field"><label>Xaaladda</label><select name="status"><option value="active">Firfircoon</option><option value="inactive">Joojiyey</option></select></div>
+   </div>
+   <div class="field"><label>Faallooyin / xog dheeraad ah</label><textarea name="notes" rows="2"></textarea></div>
+   <div class="actions"><button type="submit">Kaydi isbeddellada</button><button type="button" class="secondary" onclick="closeEdit()">Ka noqo</button></div>
+  </form>
+ </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script>
+const KEY='madarasa_manager_v1';
+let db={students:[],payments:[],pin:'435096',settings:{schoolName:'',phone:'+252636828277',theme:'light'}};
+function load(){try{let x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&typeof x==='object')db={...db,...x,settings:{...db.settings,...x.settings}}}catch(e){};document.documentElement.dataset.theme=db.settings.theme||'light';}
+function persist(){localStorage.setItem(KEY,JSON.stringify(db));}
+function money(n,c='USD'){if(c==='SOS')return new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(Number(n)||0)+' SOS';return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(Number(n)||0)}
+function monthNow(){return new Date().toISOString().slice(0,7)}
+function dateNow(){return new Date().toISOString().slice(0,10)}
+function toast(s){let t=document.getElementById('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
+function login(){if(document.getElementById('pinInput').value===db.pin){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');initApp();go('register')}else toast('PIN-ku waa khaldan yahay.')}
+function logout(){document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden');document.getElementById('pinInput').value=''}
+function showForgot(){document.getElementById('loginForm').classList.add('hidden');document.getElementById('forgotForm').classList.remove('hidden')}
+function hideForgot(){document.getElementById('forgotForm').classList.add('hidden');document.getElementById('loginForm').classList.remove('hidden')}
+function resetPin(){toast('SMS dhab ah lama soo diri karo ilaa adeeg SMS/server lagu xidho. PIN-ka ku beddel Dejinta adigoo gudaha u galay.');}
+function changePin(){if(document.getElementById('oldPin').value!==db.pin)return toast('PIN-kii hore waa khaldan yahay');let p=document.getElementById('changePin').value;if(p.length<4)return toast('PIN-ku ha ahaado ugu yaraan 4 lambar');db.pin=p;persist();document.getElementById('oldPin').value='';document.getElementById('changePin').value='';toast('PIN-ka waa la beddelay.')}
+function toggleTheme(){db.settings.theme=db.settings.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=db.settings.theme;persist()}
+function go(p){document.querySelectorAll('[id^=page-]').forEach(x=>x.classList.add('hidden'));document.getElementById('page-'+p).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===p));if(p==='home')renderHome();if(p==='students')renderStudents();if(p==='payments'){fillStudentSelect();renderPayments()}if(p==='debts')renderDebts();if(p==='reports')renderReport();if(p==='settings'){document.getElementById('schoolName').value=db.settings.schoolName||'';document.getElementById('adminPhone').value=db.settings.phone||''}}
+function initApp(){document.getElementById('today').textContent=new Date().toLocaleDateString('so-SO',{year:'numeric',month:'long',day:'numeric'});['regDate','payDate','groupRegDate'].forEach(id=>{let el=document.getElementById(id);if(el)el.value=dateNow()});document.getElementById('payMonth').value=monthNow();document.getElementById('paymentMonthFilter').value=monthNow();document.getElementById('debtMonth').value=monthNow();document.getElementById('reportMonth').value=monthNow();fillStudentSelect();renderHome()}
+const courseFeesSOS={"Quraan/higaad":20000,"Quraan/higaad/somali":40000,"Quraan/higaad/xisaab":40000,"Quraan/higaad/somali/xisaab":40000};
+function applyCourseFee(formId){
+ let form=document.getElementById(formId);if(!form)return;
+ let course=form.elements.course?.value,currency=form.elements.currency?.value||'SOS',fee=form.elements.fee;
+ if(!fee||!course)return;
+ if(currency==='SOS'&&courseFeesSOS[course]!==undefined)fee.value=courseFeesSOS[course];
+ else if(currency==='USD'){fee.value='';fee.placeholder='Geli qiimaha dollar-ka';}
+}
+function setRegMode(mode){
+ const single=mode!=='group';
+ document.getElementById('singleRegisterCard').classList.toggle('hidden',!single);
+ document.getElementById('groupRegisterCard').classList.toggle('hidden',single);
+ document.getElementById('singleModeBtn').classList.toggle('secondary',!single);
+ document.getElementById('groupModeBtn').classList.toggle('secondary',single);
+}
+function addGroupChildRow(){
+ const box=document.getElementById('groupChildrenRows');if(!box)return;
+ const n=box.querySelectorAll('.group-child-row').length+1;
+ const row=document.createElement('div');row.className='group-child-row';
+ row.innerHTML=`<input name="childName" placeholder="Magaca ardayga ${n}" aria-label="Magaca ardayga ${n}"><select name="childGender" aria-label="Jinsiga ardayga ${n}"><option value="Lab">Lab (Wiil)</option><option value="Dhedig">Dheddig (Gabar)</option></select><button type="button" class="secondary" onclick="removeGroupChildRow(this)">Ka saar</button>`;
+ box.appendChild(row);
+}
+function removeGroupChildRow(btn){
+ const box=document.getElementById('groupChildrenRows');if(!box)return;
+ const rows=box.querySelectorAll('.group-child-row');
+ if(rows.length<=2){toast('Ugu yaraan laba arday ayaa loo baahan yahay.');return;}
+ btn.closest('.group-child-row').remove();
+}
+function saveStudentGroup(e){
+ e.preventDefault();
+ const f=new FormData(e.target),d=Object.fromEntries(f.entries());
+ const nameInputs=[...e.target.querySelectorAll('input[name="childName"]')];
+ const genderInputs=[...e.target.querySelectorAll('select[name="childGender"]')];
+ const children=nameInputs.map((el,i)=>({name:el.value.trim(),gender:genderInputs[i]?.value||'Lab'})).filter(x=>x.name);
+ const names=children.map(x=>x.name);
+ if(names.length<2)return toast('Geli ugu yaraan laba magac oo arday ah.');
+ if(new Set(names.map(x=>x.toLowerCase())).size!==names.length)return toast('Magac ayaa laba jeer la geliyey; hubi magacyada.');
+ const total=Number(d.totalFee)||0,discount=Math.min(Math.max(0,Number(d.discount)||0),total);
+ if(total<=0)return toast('Geli wadarta guud ee bisha.');
+ const groupId='G'+Date.now().toString().slice(-8),net=Math.max(0,total-discount),share=net/names.length;
+ names.forEach((name,i)=>{
+   const st={id:'M'+(Date.now()+i).toString().slice(-8),name,gender:d.gender==='Mixed'?'Isku jira':d.gender,phone:d.phone||'',guardian:d.guardian||'',date:d.date||dateNow(),course:d.course||'',level:d.level||'',fee:share,discount:0,currency:d.currency||'SOS',shift:d.shift||'Subax',status:'active',createdAt:dateNow(),groupId,groupPayer:d.guardian||'',groupPhone:d.phone||'',groupTotal:total,groupDiscount:discount,groupCount:names.length,groupNetTotal:net};
+   db.students.push(st);
+ });
+ persist();e.target.reset();document.getElementById('groupChildrenRows').innerHTML='<div class="group-child-row"><input name="childName" placeholder="Magaca ardayga 1" aria-label="Magaca ardayga 1"><select name="childGender" aria-label="Jinsiga ardayga 1"><option value="Lab">Lab (Wiil)</option><option value="Dhedig">Dheddig (Gabar)</option></select><button type="button" class="secondary" onclick="removeGroupChildRow(this)">Ka saar</button></div><div class="group-child-row"><input name="childName" placeholder="Magaca ardayga 2" aria-label="Magaca ardayga 2"><select name="childGender" aria-label="Jinsiga ardayga 2"><option value="Lab">Lab (Wiil)</option><option value="Dhedig">Dheddig (Gabar)</option></select><button type="button" class="secondary" onclick="removeGroupChildRow(this)">Ka saar</button></div>';document.getElementById('groupRegDate').value=dateNow();fillStudentSelect();renderHome();
+ toast(names.length+' arday ayaa la diiwaangeliyey; hal masuul ayaa wada bixinaya.');go('students');
+}
+function saveStudent(e){e.preventDefault();let f=new FormData(e.target),s=Object.fromEntries(f.entries());s.id='M'+Date.now().toString().slice(-8);s.fee=Number(s.fee)||0;s.discount=Math.min(Math.max(0,Number(s.discount)||0),s.fee);s.currency=s.currency||'SOS';s.course=s.course||'';s.gender=s.gender||'—';s.createdAt=dateNow();db.students.push(s);persist();e.target.reset();document.getElementById('regDate').value=dateNow();toast('Ardayga waa la diiwaangeliyey: '+s.id);fillStudentSelect();go('students')}
+function fillStudentSelect(){let el=document.getElementById('payStudent');if(!el)return;let prev=el.value;el.innerHTML='<option value="">Dooro ardayga</option>'+db.students.filter(s=>s.status==='active').map(s=>`<option value="${s.id}">${esc(s.name)} — ${s.id} (${s.currency||'USD'})</option>`).join('');if(db.students.some(s=>s.id===prev))el.value=prev;syncPayCurrency()}
+function syncPayCurrency(){let s=db.students.find(x=>x.id===document.getElementById('payStudent').value);if(s)document.getElementById('payCurrency').value=s.currency||'USD'}
+function savePayment(e){e.preventDefault();let p=Object.fromEntries(new FormData(e.target).entries()),s=db.students.find(x=>x.id===p.studentId);if(!s)return toast('Dooro arday sax ah');if((p.currency||'USD')!==(s.currency||'SOS'))return toast('Lacagta ardaygan waa '+(s.currency||'SOS')+'. Dooro isla lacagta si xisaabta dayntu u saxnaato.');p.amount=Number(p.amount);if(!(p.amount>0))return toast('Geli lacag ka badan eber.');
+ if(s.groupId){let members=db.students.filter(x=>x.groupId===s.groupId&&x.status==='active'),remaining=p.amount,created=0;members.sort((a,b)=>a.name.localeCompare(b.name));for(const member of members){let due=Math.max(0,(Number(member.fee)||0)-(Number(member.discount)||0)-paidFor(member.id,p.month)),alloc=Math.min(remaining,due);if(alloc>0){db.payments.push({...p,id:'P'+(Date.now()+created).toString().slice(-8),studentId:member.id,amount:alloc,note:(p.note? p.note+' · ':'')+'Bixinta kooxda '+s.groupPayer});remaining-=alloc;created++;}if(remaining<=0)break;}if(remaining>0){let payer=members.find(x=>x.id===s.id)||members[0];db.payments.push({...p,id:'P'+(Date.now()+created).toString().slice(-8),studentId:payer.id,amount:remaining,note:(p.note?p.note+' · ':'')+'Lacag dheeraad ah oo kooxda bixisay'});}
+ }else{p.id='P'+Date.now().toString().slice(-8);db.payments.push(p)}
+ persist();e.target.reset();document.getElementById('payDate').value=dateNow();document.getElementById('payMonth').value=monthNow();fillStudentSelect();renderPayments();renderHome();renderDebts();toast(s.groupId?'Lacagta waa la qaybiyey si otomaatig ah xubnaha kooxda.':'Lacag-bixinta waa la kaydiyey') }
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function paidFor(id,m){let s=db.students.find(x=>x.id===id),c=s?.currency||'USD';return db.payments.filter(p=>p.studentId===id&&p.month===m&&(p.currency||'USD')===c).reduce((a,p)=>a+p.amount,0)}
+function monthsBetween(a,b){if(!a||!b||a>b)return 0;let [y1,m1]=a.split('-').map(Number),[y2,m2]=b.split('-').map(Number);return (y2-y1)*12+m2-m1+1}
+function totalDue(s,end){let start=(s.date||s.createdAt||dateNow()).slice(0,7);let months=Math.max(0,monthsBetween(start,end));let netFee=Math.max(0,(Number(s.fee)||0)-(Number(s.discount)||0));let expected=months*netFee;let paid=db.payments.filter(p=>p.studentId===s.id&&p.month>=start&&p.month<=end&&(p.currency||'USD')===(s.currency||'SOS')).reduce((a,p)=>a+p.amount,0);return {expected,paid,due:Math.max(0,expected-paid)}}
+function renderHome(){let active=db.students.filter(s=>s.status==='active');let m=monthNow();let pays=db.payments.filter(p=>p.month===m),paidUSD=pays.filter(p=>(p.currency||'USD')==='USD').reduce((a,p)=>a+p.amount,0),paidSOS=pays.filter(p=>p.currency==='SOS').reduce((a,p)=>a+p.amount,0);let dues=active.reduce((a,s)=>{a[s.currency||'USD']=(a[s.currency||'USD']||0)+totalDue(s,m).due;return a},{ });document.getElementById('sStudents').textContent=active.length;document.getElementById('sPaid').textContent=money(paidUSD,'USD')+' / '+money(paidSOS,'SOS');document.getElementById('sDue').textContent=money(dues.USD||0,'USD')+' / '+money(dues.SOS||0,'SOS');document.getElementById('sCount').textContent=new Set(db.payments.filter(p=>p.month===m).map(p=>p.studentId)).size;let arr=[...db.payments].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);document.getElementById('recentPayments').innerHTML=paymentTable(arr)}
+function renderStudents(){let q=(document.getElementById('studentSearch')?.value||'').toLowerCase(),f=document.getElementById('studentFilter')?.value||'all';let a=db.students.filter(s=>(f==='all'||s.status===f)&&[s.name,s.phone,s.id,s.guardian,s.level,s.course].join(' ').toLowerCase().includes(q));document.getElementById('studentsTable').innerHTML=a.length?`<table><thead><tr><th>ID</th><th>Ardayga</th><th>Telefoon</th><th>Barnaamijka</th><th>Heerka</th><th>Bishii (dhimis kadib)</th><th>Xaalad</th><th>Ficil</th></tr></thead><tbody>${a.map(s=>`<tr><td>${esc(s.id)}</td><td><strong>${esc(s.name)}</strong><div class="sub">${esc(s.gender||'—')} · ${esc(s.guardian||'')}${s.groupId?` · Koox: ${esc(s.groupPayer||'Hal bixiye')}`:''}</div></td><td>${esc(s.phone||'—')}</td><td>${esc(s.course||'—')}</td><td>${esc(s.level||'—')}</td><td>${money(Math.max(0,(Number(s.fee)||0)-(Number(s.discount)||0)),s.currency||'SOS')}${Number(s.discount)>0?`<div class="sub">Dhimis: ${money(s.discount,s.currency||'SOS')}</div>`:''}</td><td><span class="pill ${s.status==='active'?'':'red'}">${s.status==='active'?'Firfircoon':'Joojiyey'}</span></td><td><div class="actions" style="margin:0"><button class="secondary" onclick="editStudent('${s.id}')">Wax ka beddel</button><button class="secondary" onclick="toggleStudent('${s.id}')">${s.status==='active'?'Jooji':'Dib u hawlgeli'}</button><button class="danger" onclick="deleteStudentRecord('${s.id}')">Tirtir</button></div></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Arday lama helin. Ku dar arday cusub si aad u bilowdo.</div>'}
+
+function deleteStudentRecord(id){
+ const st=db.students.find(x=>x.id===id);if(!st)return toast('Ardayga lama helin');
+ const related=db.payments.filter(p=>p.studentId===id).length;
+ const msg='Ma hubtaa inaad tirtirayso ardayga "'+st.name+'" ('+id+')?'+(related?' Waxaa sidoo kale la tirtirayaa '+related+' diiwaan lacag-bixin oo ardaygan ku xidhan.':'')+' Ficilkan dib looma celin karo. Marka hore samee kayd haddii xogtu muhiim tahay.';
+ if(!confirm(msg))return;
+ db.students=db.students.filter(x=>x.id!==id);
+ db.payments=db.payments.filter(p=>p.studentId!==id);
+ persist();fillStudentSelect();renderStudents();renderPayments();renderDebts();renderHome();
+ toast('Ardayga iyo diiwaannadiisa waa la tirtiray');
+}
+
+function editStudent(id){
+ let s=db.students.find(x=>x.id===id); if(!s)return toast('Ardayga lama helin');
+ let form=document.getElementById('editStudentForm');
+ for(let [k,v] of Object.entries({id:s.id,name:s.name||'',gender:s.gender||'Lab',phone:s.phone||'',guardian:s.guardian||'',course:s.course||'Quraan/higaad',date:s.date||s.createdAt||dateNow(),level:s.level||'',fee:s.fee??0,discount:s.discount??0,currency:s.currency||'SOS',shift:s.shift||'Subax',status:s.status||'active',notes:s.notes||''})){
+  if(form.elements[k])form.elements[k].value=v;
+ }
+ document.getElementById('editModal').classList.remove('hidden');
+}
+function closeEdit(){document.getElementById('editModal').classList.add('hidden')}
+function saveStudentEdit(e){
+ e.preventDefault();let data=Object.fromEntries(new FormData(e.target).entries()),s=db.students.find(x=>x.id===data.id);
+ if(!s)return toast('Ardayga lama helin');
+ let oldCurrency=s.currency||'SOS',newCurrency=data.currency||'SOS';
+ if(oldCurrency!==newCurrency && db.payments.some(p=>p.studentId===s.id)){
+  if(!confirm('Ardaygan hore ayuu lacag u bixiyey. Beddelidda lacagta waxay ka dhigan tahay in lacag-bixinnadii hore lagu sii hayn doono lacagtoodii. Ma sii waddaa?'))return;
+ }
+ Object.assign(s,data,{fee:Number(data.fee)||0,discount:Math.min(Math.max(0,Number(data.discount)||0),Number(data.fee)||0),currency:newCurrency});
+ persist();closeEdit();fillStudentSelect();renderStudents();renderHome();renderPayments();renderDebts();
+ toast('Xogta ardayga waa la cusboonaysiiyey.');
+}
+
+function toggleStudent(id){let s=db.students.find(s=>s.id===id);if(s){s.status=s.status==='active'?'inactive':'active';persist();renderStudents();renderHome()}}
+function paymentTable(arr){if(!arr.length)return '<div class="empty">Weli lacag-bixin lama diiwaangelin.</div>';return `<table><thead><tr><th>Taariikh</th><th>Ardayga</th><th>Bisha</th><th>Lacagta</th><th>Habka</th><th>Tixraac</th></tr></thead><tbody>${arr.map(p=>{let s=db.students.find(x=>x.id===p.studentId);return `<tr><td>${esc(p.date)}</td><td>${esc(s?.name||'Arday la tirtiray')}</td><td>${esc(p.month)}</td><td><strong>${money(p.amount,p.currency||'USD')}</strong></td><td>${esc(p.method||'—')}</td><td>${esc(p.note||'—')}</td></tr>`}).join('')}</tbody></table>`}
+function renderPayments(){let m=document.getElementById('paymentMonthFilter').value;let a=db.payments.filter(p=>!m||p.month===m).sort((x,y)=>(y.date||'').localeCompare(x.date||''));document.getElementById('paymentsTable').innerHTML=paymentTable(a)}
+function renderDebts(){let m=document.getElementById('debtMonth').value||monthNow(),q=(document.getElementById('debtSearch').value||'').toLowerCase();let a=db.students.filter(s=>s.status==='active'&&s.name.toLowerCase().includes(q)).map(s=>({...s,...totalDue(s,m)})).filter(s=>s.due>0).sort((x,y)=>y.due-x.due);document.getElementById('debtsTable').innerHTML=a.length?`<table><thead><tr><th>Ardayga</th><th>Telefoon</th><th>Bilaha la xisaabiyey</th><th>La filayey</th><th>Bixiyey</th><th>Dayn</th><th>Ficil</th></tr></thead><tbody>${a.map(s=>`<tr><td><strong>${esc(s.name)}</strong><div class="sub">${esc(s.id)}</div></td><td>${esc(s.phone||'—')}</td><td>${monthsBetween((s.date||s.createdAt).slice(0,7),m)}</td><td>${money(s.expected,s.currency||'SOS')}</td><td>${money(s.paid,s.currency||'SOS')}</td><td><span class="pill red">${money(s.due,s.currency||'SOS')}</span></td><td><div class="actions" style="margin:0"><button class="secondary" onclick="showInvoice('${s.id}','${m}')">Invoice</button><button onclick="quickPay('${s.id}','${m}')">Bixi</button></div></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Dayn muuqata ma jirto ilaa bisha la doortay.</div>'}
+
+function closeInvoice(){document.getElementById('invoiceModal').classList.add('hidden')}
+function showInvoice(id,endMonth){
+ const st=db.students.find(x=>x.id===id);if(!st)return toast('Ardayga lama helin');
+ const cur=st.currency||'SOS',start=(st.date||st.createdAt||dateNow()).slice(0,7),end=endMonth||monthNow();
+ const months=[];let [yy,mm]=start.split('-').map(Number),[ey,em]=end.split('-').map(Number);
+ let cursor=new Date(yy,mm-1,1),last=new Date(ey,em-1,1);
+ while(cursor<=last&&months.length<240){months.push(cursor.getFullYear()+'-'+String(cursor.getMonth()+1).padStart(2,'0'));cursor.setMonth(cursor.getMonth()+1)}
+ const payments=db.payments.filter(p=>p.studentId===id&&(p.currency||cur)===cur).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+ const periodPayments=payments.filter(p=>p.month>=start&&p.month<=end);
+ const totalPaid=periodPayments.reduce((n,p)=>n+(Number(p.amount)||0),0);
+ const baseFee=Number(st.fee)||0,discount=Math.min(Math.max(0,Number(st.discount)||0),baseFee),netFee=Math.max(0,baseFee-discount),expected=months.length*netFee,due=Math.max(0,expected-totalPaid);
+ const monthlyRows=months.map(m=>{const ps=payments.filter(p=>p.month===m),paid=ps.reduce((n,p)=>n+(Number(p.amount)||0),0),left=Math.max(0,netFee-paid);return `<tr><td>${esc(m)}</td><td>${money(netFee,cur)}</td><td>${money(paid,cur)}</td><td>${money(left,cur)}</td><td><span class="status ${left===0?'paid':'owing'}">${left===0?'La bixiyey':'Dayn jirta'}</span></td></tr>`}).join('');
+ const paymentRows=periodPayments.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.date||'—')}</td><td>${esc(p.month||'—')}</td><td>${money(p.amount,cur)}</td><td>${esc(p.method||'—')}</td><td>${esc(p.note||'—')}</td></tr>`).join('');
+ const school=db.settings.schoolName?esc(db.settings.schoolName):'Madarasada';
+ const serial='INV-'+String(st.id).replace(/[^a-zA-Z0-9]/g,'').slice(-8).toUpperCase()+'-'+end.replace('-','');
+ document.getElementById('invoiceContent').innerHTML=`
+ <div class="invoice-paper">
+  <header class="inv-banner"><div class="inv-mark">📚</div><div class="inv-brand"><h2>${school}</h2><p>BARASHO • AKHLAAQ • HORUMAR</p><span>INVOICE / WARQADDA XISAABTA ARDAYGA</span></div></header>
+  <div class="inv-meta"><div><small>Lambarka Invoice-ka</small><strong>${esc(serial)}</strong></div><div><small>Taariikhda</small><strong>${esc(dateNow())}</strong></div><div><small>Xisaabta ilaa</small><strong>${esc(end)}</strong></div></div>
+  <h3 class="inv-section-title">1. Xogta ardayga</h3>
+  <div class="inv-student-grid">
+   <div><small>Magaca ardayga</small><strong>${esc(st.name)}</strong></div><div><small>Lambarka aqoonsiga</small><strong>${esc(st.id)}</strong></div>
+   <div><small>Jinsiga</small><strong>${esc(st.gender||'—')}</strong></div><div><small>Waalidka / Mas'uulka</small><strong>${esc(st.guardian||'—')}</strong></div>
+   <div><small>Telefoonka</small><strong>${esc(st.phone||'—')}</strong></div><div><small>Barnaamijka</small><strong>${esc(st.course||'—')}</strong></div>
+   <div><small>Fasalka / Heerka</small><strong>${esc(st.level||'—')}</strong></div><div><small>Jadwalka</small><strong>${esc(st.shift||'—')}</strong></div>
+  </div>
+  <h3 class="inv-section-title">2. Soo koobidda lacagta</h3>
+  <div class="inv-summary">
+   <div><small>Bilaha la xisaabiyey</small><strong>${months.length}</strong></div>
+   <div><small>Lacagta caadiga ah</small><strong>${money(baseFee,cur)}</strong></div><div><small>Discount / Dhimis</small><strong>${money(discount,cur)}</strong></div><div><small>Lacagta bishii (dhimis kadib)</small><strong>${money(netFee,cur)}</strong></div>
+   <div><small>Wadarta laga rabay</small><strong>${money(expected,cur)}</strong></div>
+   <div><small>Wadarta la bixiyey</small><strong>${money(totalPaid,cur)}</strong></div>
+   <div class="inv-balance"><small>Hadhay / Dayn</small><strong>${money(due,cur)}</strong></div>
+  </div>
+  <h3 class="inv-section-title">3. Faahfaahinta bil kasta</h3>
+  <div class="table-wrap"><table class="inv-table"><thead><tr><th>Bisha</th><th>Lagu lahaa (dhimis kadib)</th><th>La bixiyey</th><th>Hadhay</th><th>Xaaladda</th></tr></thead><tbody>${monthlyRows||'<tr><td colspan="5">Xog bil ah ma jirto.</td></tr>'}</tbody></table></div>
+  <h3 class="inv-section-title">4. Taariikhda lacag-bixinnada</h3>
+  <div class="table-wrap"><table class="inv-table"><thead><tr><th>#</th><th>Taariikh</th><th>Bisha</th><th>Lacagta</th><th>Habka</th><th>Tixraac / Faallo</th></tr></thead><tbody>${paymentRows||'<tr><td colspan="6">Lacag-bixin lama diiwaangelin muddadan.</td></tr>'}</tbody></table></div>
+  <div class="inv-note"><strong>Fiiro gaar ah:</strong> Xisaabtu waxay ka bilaabmaysaa bisha diiwaangelinta ardayga ilaa ${esc(end)}; discount-ka bishii waa laga jaray lacagta laga rabo. Lacagaha waxaa lagu xisaabiyey ${cur==='USD'?'Dollar (USD)':'Shilling Soomaali (SOS)'} oo keliya.</div>
+  <div class="inv-signatures"><div><span>Maamulka Madarasada</span></div><div><span>Saxiixa waalidka / Mas'uulka</span></div></div>
+  <footer class="inv-footer">Mahadsanid inaad qayb ka tahay madarasadeenna • Invoice-kan waxaad daabacan kartaa ama PDF u kaydin kartaa.</footer>
+ </div>`;
+ document.getElementById('invoiceModal').classList.remove('hidden');
+}
+function printInvoice(){
+ const content=document.getElementById('invoiceContent').innerHTML;
+ const w=window.open('','_blank');if(!w)return toast('Browser-ku wuxuu xannibay daaqadda daabacaadda. U oggolow pop-ups kadib isku day.');
+ w.document.write(`<!doctype html><html lang="so"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invoice Madarasada</title><style>
+ *{box-sizing:border-box}body{font:12px Arial,sans-serif;color:#172b3a;margin:0;padding:20px;background:#eef3f7}.invoice-paper{max-width:900px;margin:auto;background:#fff;border:1px solid #dbe4ed;border-radius:14px;overflow:hidden;padding:22px}.inv-banner{display:flex;align-items:center;gap:18px;background:linear-gradient(120deg,#123d56,#087f8c);color:#fff;padding:20px;border-radius:12px}.inv-mark{font-size:35px;background:#ffffff22;border-radius:12px;padding:10px}.inv-brand h2{margin:0;font-size:25px;color:#fff}.inv-brand p{margin:5px 0;font-size:10px;letter-spacing:2px;color:#c9f7ed}.inv-brand span{font-size:12px;font-weight:bold}.inv-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.inv-meta>div,.inv-student-grid>div{border:1px solid #dce6ee;border-radius:7px;padding:9px}.inv-meta small,.inv-student-grid small,.inv-summary small{display:block;color:#657786;font-size:10px;margin-bottom:5px}.inv-meta strong,.inv-student-grid strong{display:block;overflow-wrap:anywhere}.inv-section-title{font-size:13px;color:#087f8c;border-bottom:2px solid #d9f1ee;padding-bottom:6px;margin:18px 0 9px}.inv-student-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.inv-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.inv-summary>div{background:#edf6f8;border:1px solid #d6e9ed;border-radius:8px;padding:10px}.inv-summary strong{font-size:12px;display:block}.inv-summary .inv-balance{background:#fff0e9;border-color:#ffd0bc;color:#a64020}.table-wrap{overflow:visible}table{width:100%;border-collapse:collapse;margin:8px 0 15px;font-size:10px}th,td{border:1px solid #dce5ec;padding:7px;text-align:left;overflow-wrap:anywhere}th{background:#e8f4f5;color:#164d5b}.status{padding:3px 6px;border-radius:12px;font-size:9px}.paid{background:#dcf7e8;color:#147443}.owing{background:#ffe8e1;color:#a64020}.inv-note{background:#f4f7fa;border-left:4px solid #0d8990;padding:10px;margin-top:15px;line-height:1.5}.inv-signatures{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin:35px 0 18px}.inv-signatures div{border-top:1px solid #8293a0;padding-top:8px;text-align:center}.inv-footer{text-align:center;color:#55717d;border-top:1px solid #e0e8ed;padding-top:12px;font-size:10px}@page{size:A4;margin:12mm}@media print{body{padding:0;background:#fff}.invoice-paper{border:0;border-radius:0;padding:0;max-width:none}.inv-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}.inv-summary>div,.inv-balance,th,.paid,.owing{-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{break-inside:avoid}}
+ </style></head><body>${content}<script>window.onload=()=>window.print()<\/script></body></html>`);
+ w.document.close();
+}
+
+function quickPay(id,m){go('payments');document.getElementById('payStudent').value=id;document.getElementById('payMonth').value=m;let s=db.students.find(s=>s.id===id);syncPayCurrency();document.querySelector('#paymentForm [name=amount]').value=Math.max(0,(s?.fee||0)-paidFor(id,m)).toFixed(2)}
+function renderReport(){let m=document.getElementById('reportMonth').value||monthNow(),a=db.payments.filter(p=>p.month===m),sumUSD=a.filter(p=>(p.currency||'USD')==='USD').reduce((n,p)=>n+p.amount,0),sumSOS=a.filter(p=>p.currency==='SOS').reduce((n,p)=>n+p.amount,0),active=db.students.filter(s=>s.status==='active');document.getElementById('reportSummary').innerHTML=`<div class="stats"><div class="stat"><span class="sub">Bixiyey bishan</span><strong>${money(sumUSD,'USD')} / ${money(sumSOS,'SOS')}</strong></div><div class="stat"><span class="sub">Tirada lacag-bixinta</span><strong>${a.length}</strong></div><div class="stat"><span class="sub">Ardayda firfircoon</span><strong>${active.length}</strong></div><div class="stat"><span class="sub">Daynta la qiyaasay</span><strong>${money(active.filter(s=>(s.currency||'SOS')==='USD').reduce((n,s)=>n+totalDue(s,m).due,0),'USD')+' / '+money(active.filter(s=>(s.currency||'SOS')==='SOS').reduce((n,s)=>n+totalDue(s,m).due,0),'SOS')}</strong></div></div>`;document.getElementById('reportTable').innerHTML=paymentTable(a)}
+function exportCSV(){let rows=[['ID','Magaca','Telefoon','Bisha','Taariikh','Lacag','Habka','Tixraac'],...db.payments.map(p=>{let s=db.students.find(s=>s.id===p.studentId);return [s?.id||'',s?.name||'',s?.phone||'',p.month,p.date,p.amount,p.method,p.note]})];let csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');download('\ufeff'+csv,'warbixinta-lacagaha.csv','text/csv;charset=utf-8;')}
+function backup(){download(JSON.stringify(db,null,2),'kaydka-madarasada-'+dateNow()+'.json','application/json')}
+function download(data,name,type){let blob=new Blob([data],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
+function restoreBackup(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!Array.isArray(x.students)||!Array.isArray(x.payments))throw 0;if(confirm('Xogta hadda jirta waxaa lagu beddelayaa kaydkan. Ma sii wadaysaa?')){db={...db,...x};persist();initApp();toast('Kaydkii waa la soo celiyey')}}catch(err){toast('Faylka kaydku ma saxna.')}e.target.value=''};r.readAsText(f)}
+function saveSettings(){db.settings.schoolName=document.getElementById('schoolName').value;db.settings.phone=document.getElementById('adminPhone').value;persist();toast('Dejinta waa la kaydiyey')}
+function clearData(){if(prompt('Si aad u xaqiijiso geli PIN-ka maamulka:')!==db.pin)return toast('PIN-ku ma saxna');if(confirm('Dhammaan ardayda iyo lacagaha ma tirtiraysaa? Tani lama celin karo haddii aadan backup haysan.')){db.students=[];db.payments=[];persist();initApp();toast('Xogta waa la tirtiray')}}
+load();
+</script>
+</body>
+  </html>
